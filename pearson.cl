@@ -1,7 +1,24 @@
 // http://www.stat.wmich.edu/s216/book/node122.html
 
-// Precondition: file data will have to be read in
+// Precondition: File data will have to be read in
 // done timestamp: 4:00 pm 11-22-1016
+
+
+
+/********************************DATA PARTITIONING*****************************/
+// Initially we'll need dummy data (2 - 80 double entries)
+/*****************************END DATA PARTITIONING****************************/
+
+
+
+/*****************************PROCESS PARTITIONING*****************************/
+// The processing block listed below will be 'placed' in here
+// this part bridges with the data partitioning labeled above
+/*****************************END PROCESS PARTITIONING*************************/
+
+
+
+/*********************************PROCESSING**********************************/
 
 /******************************PSEUDO CODE************************************/
 
@@ -33,10 +50,11 @@
     a. Call the results of J/E and K/E: L and M respectively
   7. Subtract H by L (H - L) and I by M (I - M)
     a. Call the results N and O respectively
-  8. Multiply M and N and take the square root of the product
+  8. Multiply N and O and take the square root of the product
     a. Call the result P
   9. Divide F by P (F / P)
-    a. Call this the result the Pearson Coefficient Oh snap
+    a. Call this the result the Pearson Coefficient
+    b. OH SNAP! We're done
 */
 
 // Possible # of Intermediate Variables: 16 intermediate variables
@@ -44,20 +62,28 @@
 /*****************************CL FUNCTION CALLS*******************************/
 
 /* Toes into OpenCL */
+/* Precondition: Have two different rows in scope of this kernel */
 
 /*
   Functions that can used in acquiring the above varaibles
   Variable A: Use the dot product
     The largest vector using the 1.2 standard is the 16 wide vector
-    16*5 = 80, however on the data we have that straggling column that
-    doesn't have label no matter I'll use the last entry anyway
-    split the row into 5 sets of 'dotting' double16 vectors add the 5 sepearate
-    scalars together
+    16*5 = 80. Split the row into 5 sets of 'dotting' double16 vectors add the
+    5 sepearate scalars together.
   Variable B and C: Sum the rows (5 sets of double16 vectors) into scalars
-  Variable D: Multiply the 2 scalars
-  Variable E: This should be the number 80 (can be hardcoded in our case)
+  Variable D: Multiply the 2 scalars B and C, store in D
+  Variable E: This should be the number 80 (hardcoded, dirty I know)
   Variable F: Scalar division D / E
   Variable G: Scalar subtraction A - F
-  Variable H and I: square atomically each of the double16
+  Variable H and I: Square atomically (each of the elements in the vectors) the
+    5 double16 vectors add their respective squares together.
+  Variable J and K: Square scalars B and C and store in variables (J & K)
+  Variable L and M: Scalar Division (L = J / E) and (M = K / E)
+  Variable N and O: Scalar subtraction (N = H - L) & (O = I - M)
+  Variable P: Scalar multiplication and root (sqrt(N*O))
+
+  Variable FIN: Scalar Division (F / P)
 
 */
+
+/*******************************END PROCESSING********************************/
