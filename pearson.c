@@ -3,9 +3,9 @@
 // I will need multiple kernel
 #define KERNEL_FUNC "matvec_mult"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "fileio.c"
 #include <sys/types.h>
+
 
 #ifdef MAC
 #include <OpenCL/cl.h>
@@ -19,6 +19,24 @@ int main() {
   This initial amount of code has been derived and modified by the 1st chapter
   code examples from the 'OpenCL in action' technical book the matvec.c
 */
+
+  // Here I need to make sure the variables are properly passed so I can access
+  // them (I need to invoke the function here as well)
+
+  // READ in the file and check to see if the global variables from the file
+  // are properly accessible
+
+
+  //  int a = 0, j = 0;
+  // for(a = 0; a < 56393; a++)
+  // {
+  //   for(j = 0; j < 80; j++)
+  //   {
+  //     printf("Row: %u Col: %u  Gene/transcript#%u %s\n  Sample%u %s: %.12lf\n", a, j, a, gene_transcripts[a], j, sample_name[j], score[a][j]);
+  //   }
+  // }
+  //
+  //  getchar();
 
   /* Host/device data structures */
   cl_platform_id platform;
@@ -34,13 +52,16 @@ int main() {
   size_t program_size, log_size;
   cl_kernel kernel;
 
-  // I have 76,451 samples to compare to each other
-
   /* Data and buffers */
   float mat[16], vec[4], result[4];
   float correct[4] = {0.0f, 0.0f, 0.0f, 0.0f};
   cl_mem mat_buff, vec_buff, res_buff;
   size_t work_units_per_kernel;
+
+  // For now I'll use dummy data so I can be able to see if the pearson is
+  // working as intended
+  // TODO: uncomment later this holds the REAL DATA YO
+  //read();
 
   /* Initialize data to be processed by the kernel */
   for(i=0; i<16; i++) {
@@ -54,6 +75,17 @@ int main() {
      correct[3] += mat[i+12] * vec[i];
   }
 
+  printf("Inital Matrix:\n");
+  for(i=0; i<16; i++) {
+    if(i % 4 == 0)
+      printf("\n");
+    printf("%lf ",mat[i]);
+  }
+  printf("\n");
+
+  printf("Correct Matrix:\n%lf %lf %lf %lf\n", correct[0], correct[1], correct[2], correct[3]);
+
+  return;
   /* Identify a platform */
   err = clGetPlatformIDs(1, &platform, NULL);
   if(err < 0) {
@@ -115,7 +147,7 @@ int main() {
   }
 
   /* Create kernel for the mat_vec_mult function */
-  // TODO: 
+  // TODO:
   kernel = clCreateKernel(program, KERNEL_FUNC, &err);
   if(err < 0) {
      perror("Couldn't create the kernel");

@@ -20,7 +20,7 @@ char sample_name[80][50];
 char gene_transcripts[56393][50];
 
 
-int main (void)
+void read (void)
 {
   // The hardcoded # of samples in this particular file (80)
   unsigned int sample_count = 0,
@@ -35,7 +35,7 @@ int main (void)
   if(handle == NULL)
   {
     printf("File could not be opened yo\n");
-    return 1;
+    return;
   }
 
   // I have to know how many samples I have so keep a count
@@ -62,7 +62,7 @@ int main (void)
     {
       //  printf("\n");
       fscanf(handle, "%s", gene_transcripts[gene_transcript_count]);
-      printf("gene_transcript#%u: %s\n", gene_transcript_count, gene_transcripts[gene_transcript_count]);
+      //printf("gene_transcript#%u: %s\n", gene_transcript_count, gene_transcripts[gene_transcript_count]);
       gene_transcript_count++;
       sample_count = 0;
     }
@@ -86,5 +86,5 @@ int main (void)
   getchar();
 
   fclose(handle);
-  return 0;
+  return;
 }
