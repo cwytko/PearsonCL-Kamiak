@@ -65,16 +65,16 @@
 /* Precondition: Have two different rows in scope of this kernel */
 
 /*
-  Functions that can used in acquiring the above varaibles
+  Functions that can used in acquiring the above variables
   Variable A: Use the dot product
     The largest vector using the 1.2 standard is the 16 wide vector
     16*5 = 80. Split the row into 5 sets of 'dotting' double16 vectors add the
     5 sepearate scalars together.
   Variable B and C: Sum the rows (5 sets of double16 vectors) into scalars
-  Variable D: Multiply the 2 scalars B and C, store in D
+  Variable D: Scalar multiplication B * C store in D
   Variable E: This should be the number 80 (hardcoded, dirty I know)
-  Variable F: Scalar division D / E
-  Variable G: Scalar subtraction A - F
+  Variable F: Scalar division D / E store in F
+  Variable G: Scalar subtraction A - F store in G
   Variable H and I: Square atomically (each of the elements in the vectors) the
     5 double16 vectors add their respective squares together.
   Variable J and K: Square scalars B and C and store in variables (J & K)
@@ -87,3 +87,43 @@
 */
 
 /*******************************END PROCESSING********************************/
+
+/*
+  To be used in the construction of variables B & C
+*/
+__kernel void sum_row(__global double16* row0, __global double16* row1,
+                      __global double16* row2, __global double16* row3,
+                      __global double16* row4, __global double16* sum)
+{
+  sum = row0 + row1 + row2 + row3 + row4;
+}
+
+/*
+  To be used in the construction of variables H & I
+*/
+__kernel void sqaure_and_sum_row_elements(__global double16* row0,
+                                          __global double16* row1,
+                                          __global double16* row2,
+                                          __global double16* row3,
+                                          __global double16* row4,
+                                          __global double16* result)
+{
+  result = pown(row0, 2) + pown(row1, 2) + pown(row2, 2) + pown(row3, 2) +
+           pown(row4, 2);
+}
+
+/*
+  To be used in the construction of variable A
+  The double vector dot product can only work with vectors of size 4 or less
+  We have 80 entries per row, this function will compute the dot of 20 elements
+  from the upper and lower row, so this will be called 4 times
+*/
+__kernel void dot_row(__global double4* upper_row0, __global double4* lower_row0,
+                      __global double4* upper_row1, __global double4* lower_row1,
+                      __global double4* upper_row2, __global double4* lower_row2,
+                      __global double4* upper_row3, __global double4* lower_row3,
+                      __global double4* upper_row4, __global double4* lower_row4,
+                      __global double* dot_sum)
+{
+
+}
