@@ -91,7 +91,7 @@
 /*
   To be used in the construction of variables B & C
 */
-__kernel void sum_row(__global double16* row0, __global double16* row1,
+void sum_row(__global double16* row0, __global double16* row1,
                       __global double16* row2, __global double16* row3,
                       __global double16* row4, __global double16* sum)
 {
@@ -101,7 +101,7 @@ __kernel void sum_row(__global double16* row0, __global double16* row1,
 /*
   To be used in the construction of variables H & I
 */
-__kernel void sqaure_and_sum_row_elements(__global double16* row0,
+void sqaure_and_sum_row_elements(__global double16* row0,
                                           __global double16* row1,
                                           __global double16* row2,
                                           __global double16* row3,
@@ -118,7 +118,7 @@ __kernel void sqaure_and_sum_row_elements(__global double16* row0,
   We have 80 entries per row, this function will compute the dot of 20 elements
   from the upper and lower row, so this will be called 4 times
 */
-__kernel void dot_row(__global double4* upper_row0, __global double4* lower_row0,
+void dot_row(__global double4* upper_row0, __global double4* lower_row0,
                       __global double4* upper_row1, __global double4* lower_row1,
                       __global double4* upper_row2, __global double4* lower_row2,
                       __global double4* upper_row3, __global double4* lower_row3,
