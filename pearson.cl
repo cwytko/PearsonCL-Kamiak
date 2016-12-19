@@ -127,3 +127,45 @@ void dot_row(__global double4* upper_row0, __global double4* lower_row0,
 {
 
 }
+
+__kernel void spearman(int size, int chunk, int minSize, __global int* insts, __global float* exprs,
+                       __global float* result, __global float* alistF, __global float* blistF,
+                       __global int* rankF, __global int* iRankF, __global long* summationF,
+                       __global float* aTmpListF, __global float* bTmpListF, __global int* aWorkF,
+                       __global int* bWorkF, __global int* aPointF, __global int* bPointF)
+{
+   int i = get_group_id(0)*2;
+   int j = get_group_id(0);
+   int wsize = get_local_size(0)*2*chunk;
+   __global float* alist = &alistF[j*wsize];
+   __global float* blist = &blistF[j*wsize];
+   __global int* rank = &rankF[j*wsize];
+   __global int* iRank = &iRankF[j*wsize];
+   __global long* summation = &summationF[j*wsize];
+   __global float* aTmpList = &aTmpListF[j*wsize];
+   __global float* bTmpList = &bTmpListF[j*wsize];
+   __global int* aWork = &aWorkF[j*wsize];
+   __global int* bWork = &bWorkF[j*wsize];
+   __global int* aPoint = &aPointF[j*wsize];
+   __global int* bPoint = &bPointF[j*wsize];
+   fetch_lists(insts[i],insts[i+1],size,chunk,aTmpList,bTmpList,exprs);
+   prune_lists(chunk,aTmpList,aWork,aPoint,bTmpList,bWork,bPoint);
+   double_bitonic_sort_ii(chunk,aWork,aPoint,bWork,bPoint);
+   construct_lists(chunk,aTmpList,alist,aPoint,bTmpList,blist,bPoint,rank,iRank);
+   bitonic_sort_ff(chunk,alist,blist);
+   bitonic_sort_fi(chunk,blist,rank);
+   calc_ranks(chunk,summation,rank,iRank);
+   accumulate(chunk,summation,iRank);
+   if (get_local_id(0)==0)
+   {
+      size = iRank[0];
+      if (size<minSize)
+      {
+         result[j] = NAN;
+      }
+      else
+      {
+         result[j] = 1.0-(6.0*(float)summation[0]/((float)size*(((float)size*(float)size)-1)));
+      }
+   }
+}

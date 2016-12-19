@@ -120,6 +120,7 @@ void Pearson::execute_cl(Ace::GetOpts& ops, Ace::Terminal& tm)
       chunk = bSize/(2*wSize);
    }
    calculate(tm,kern,expList,sSize,wSize,chunk,blSize,smSize,minSize);
+
    auto t2 = system_clock::now();
    int s = duration_cast<seconds>(t2-t1).count();
    if (s==0)
@@ -366,9 +367,12 @@ void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern, elist& expList, 
       int x;
       int y;
       Ace::CLEvent ev;
+      // The IN data ?
       AccelCompEng::CLBuffer<int> ld;
+      // The OUT data ?
       AccelCompEng::CLBuffer<cl_float> ans;
    } state[smSize];
+   
    for (int i = 0;i<smSize;++i)
    {
       state[i].st = State::start;
