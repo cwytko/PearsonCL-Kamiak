@@ -1,6 +1,7 @@
 
 /*****************************************************************************/
 #include "pearson.h"
+// generate this with mkcl once pearson.cl is done
 #include "pearson.cl.h"
 /*****************************************************************************/
 
@@ -81,6 +82,9 @@ void Pearson::execute_cl(Ace::GetOpts& ops, Ace::Terminal& tm)
    int gSize {_in->gene_size()};
    int sSize {_in->sample_size()};
    tm << "Loading expression data into OpenCL device...\n";
+   // Why a cl_float for an integral number of samples and genes?
+   // int * int = int ....
+   // TODO: need explanation
    auto expList = CLContext::buffer<cl_float>(sSize*gSize);
    int inc {0};
    for (auto g = _in->begin();g!=_in->end();++g)
@@ -372,7 +376,7 @@ void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern, elist& expList, 
       // The OUT data ?
       AccelCompEng::CLBuffer<cl_float> ans;
    } state[smSize];
-   
+
    for (int i = 0;i<smSize;++i)
    {
       state[i].st = State::start;

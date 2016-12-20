@@ -114,9 +114,7 @@ void sqaure_and_sum_row_elements(__global double16* row0,
 
 /*
   To be used in the construction of variable A
-  The double vector dot product can only work with vectors of size 4 or less
-  We have 80 entries per row, this function will compute the dot of 20 elements
-  from the upper and lower row, so this will be called 4 times
+
 */
 void dot_row(__global double4* upper_row0, __global double4* lower_row0,
                       __global double4* upper_row1, __global double4* lower_row1,
@@ -128,34 +126,49 @@ void dot_row(__global double4* upper_row0, __global double4* lower_row0,
 
 }
 
-__kernel void spearman(int size, int chunk, int minSize, __global int* insts, __global float* exprs,
-                       __global float* result, __global float* alistF, __global float* blistF,
-                       __global int* rankF, __global int* iRankF, __global long* summationF,
-                       __global float* aTmpListF, __global float* bTmpListF, __global int* aWorkF,
-                       __global int* bWorkF, __global int* aPointF, __global int* bPointF)
+__kernel void spearman(/*kern_arg0*/int size,/*kern_arg1*/ int chunk,
+                       /*kern_arg2*/int minSize, /*kern_arg3*/__global int* insts,
+                       /*kern_arg4*/__global float* exprs, /*kern_arg4*/__global float* result,
+                       /*kern_arg5*/ __global float* alistF, /*kern_arg6*/__global float* blistF,
+                      //  __global int* rankF, __global int* iRankF, __global long* summationF,
+                       /*kern_arg7*/__global float* aTmpListF, /*kern_arg8*/__global float* bTmpListF,
+                       /*kern_arg9*/__global int* aWorkF, /*kern_arg10*/__global int* bWorkF,
+                       /*kern_arg11*/__global int* aPointF,
+                       /*kern_arg12*/__global int* bPointF)
 {
    int i = get_group_id(0)*2;
    int j = get_group_id(0);
    int wsize = get_local_size(0)*2*chunk;
+   // '1st' row
    __global float* alist = &alistF[j*wsize];
+   // '2nd' row
    __global float* blist = &blistF[j*wsize];
-   __global int* rank = &rankF[j*wsize];
-   __global int* iRank = &iRankF[j*wsize];
+   // not needed
+  //  __global int* rank = &rankF[j*wsize];
+  //  __global int* iRank = &iRankF[j*wsize];
    __global long* summation = &summationF[j*wsize];
    __global float* aTmpList = &aTmpListF[j*wsize];
    __global float* bTmpList = &bTmpListF[j*wsize];
+   // Work group sizes of each row (after dealing with the NANs?)
+   // TODO: Verify this
    __global int* aWork = &aWorkF[j*wsize];
    __global int* bWork = &bWorkF[j*wsize];
+   // TODO: What are these?
    __global int* aPoint = &aPointF[j*wsize];
    __global int* bPoint = &bPointF[j*wsize];
+
    fetch_lists(insts[i],insts[i+1],size,chunk,aTmpList,bTmpList,exprs);
    prune_lists(chunk,aTmpList,aWork,aPoint,bTmpList,bWork,bPoint);
+   // Not needed
+   /*
    double_bitonic_sort_ii(chunk,aWork,aPoint,bWork,bPoint);
    construct_lists(chunk,aTmpList,alist,aPoint,bTmpList,blist,bPoint,rank,iRank);
    bitonic_sort_ff(chunk,alist,blist);
    bitonic_sort_fi(chunk,blist,rank);
    calc_ranks(chunk,summation,rank,iRank);
    accumulate(chunk,summation,iRank);
+  */
+
    if (get_local_id(0)==0)
    {
       size = iRank[0];
