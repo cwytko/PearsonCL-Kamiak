@@ -82,10 +82,10 @@ void Pearson::execute_cl(Ace::GetOpts& ops, Ace::Terminal& tm)
    int gSize {_in->gene_size()};
    int sSize {_in->sample_size()};
    tm << "Loading expression data into OpenCL device...\n";
-   // Why a cl_float for an integral number of samples and genes?
-   // int * int = int ....
-   // TODO: need explanation
+
+   // A linear list of all the sample scores (sample # size * gene # size)
    auto expList = CLContext::buffer<cl_float>(sSize*gSize);
+
    int inc {0};
    for (auto g = _in->begin();g!=_in->end();++g)
    {
@@ -113,6 +113,7 @@ void Pearson::execute_cl(Ace::GetOpts& ops, Ace::Terminal& tm)
    tm << "Calculating pearson values and saving to output file[0%]...";
 
    // bSize is the sample size rounded to the nearest higer power of 2.
+   // TODO: but what is it?
    int bSize {pow2_ceil(sSize)};
    Ace::assert<TooManySamples>(bSize>0,f,__LINE__);
    // wSize is the work group size rounded to the nearest lower power of 2.
@@ -331,8 +332,10 @@ int Pearson::pow2_floor(int i)
  *  // TODO: what is the minSize
  */
 
-void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern, elist& expList, int size,
-                         int wSize, int chunk, int blSize, int smSize, int minSize)
+void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern,
+                        /* the giant linear list*/elist& expList, int size,
+                        int wSize, int chunk, /*What is blsize?*/int blSize,
+                        int smSize, int minSize)
 {
    enum class State {start,in,exec,out,end};
    unsigned long total = CMatrix::diag_size(_in->gene_size());
@@ -344,47 +347,57 @@ void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern, elist& expList, 
    auto buf1 = CLContext::buffer<cl_float>(blSize*bufferSize);
    kern.set_arg(6,&buf1);
    auto buf2 = CLContext::buffer<cl_float>(blSize*bufferSize);
-   kern.set_arg(7,&buf2);
-   auto buf3 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(8,&buf3);
-   auto buf4 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(9,&buf4);
-   auto buf5 = CLContext::buffer<cl_long>(blSize*bufferSize);
-   kern.set_arg(10,&buf5);
+
+   //kern.set_arg(7,&buf2);
+   //auto buf3 = CLContext::buffer<cl_int>(blSize*bufferSize);
+   //kern.set_arg(8,&buf3);
+   //auto buf4 = CLContext::buffer<cl_int>(blSize*bufferSize);
+   //kern.set_arg(9,&buf4);
+   //auto buf5 = CLContext::buffer<cl_long>(blSize*bufferSize);
+   kern.set_arg(7,&buf5);
    auto buf6 = CLContext::buffer<cl_float>(blSize*bufferSize);
-   kern.set_arg(11,&buf6);
+   kern.set_arg(8,&buf6);
    auto buf7 = CLContext::buffer<cl_float>(blSize*bufferSize);
-   kern.set_arg(12,&buf7);
+   kern.set_arg(9,&buf7);
    auto buf8 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(13,&buf8);
+   kern.set_arg(10,&buf8);
    auto buf9 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(14,&buf9);
+   kern.set_arg(11,&buf9);
    auto buf10 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(15,&buf10);
+   kern.set_arg(12,&buf10);
    auto buf11 = CLContext::buffer<cl_int>(blSize*bufferSize);
-   kern.set_arg(16,&buf11);
+   kern.set_arg(13,&buf11);
    kern.set_swarm_dims(1);
    kern.set_swarm_size(0,blSize*wSize,wSize);
    struct
    {
       State st;
+      // x and y are the two chosen rows that will be compared to get the ans
+      // Row '0'
       int x;
+      // Row +1
       int y;
+      /* Part of event looping yo
+       * Part of the open CL listening to see when the kernel is done being
+       * crunched
+       * TODO: describe more
+      */
       Ace::CLEvent ev;
-      // The IN data ?
+      // an int (is this the offset in the list)?... TODO: what is this?
       AccelCompEng::CLBuffer<int> ld;
-      // The OUT data ?
+      // The OUT data
       AccelCompEng::CLBuffer<cl_float> ans;
    } state[smSize];
 
-   for (int i = 0;i<smSize;++i)
+   for (int index = 0;index<smSize;++index)
    {
-      state[i].st = State::start;
-      state[i].x = 0;
-      state[i].y = 0;
-      state[i].ev = Ace::CLEvent();
-      state[i].ld = CLContext::buffer<int>(2*blSize);
-      state[i].ans = CLContext::buffer<cl_float>(blSize);
+      state[index].st = State::start;
+      state[index].x = 0;
+      state[index].y = 0;
+      state[index].ev = Ace::CLEvent();
+
+      state[index].ld = CLContext::buffer<int>(2*blSize);
+      state[index].ans = CLContext::buffer<cl_float>(blSize);
    }
    int alive {smSize};
    int si {0};
@@ -425,19 +438,27 @@ void Pearson::calculate(Ace::Terminal& tm, Ace::CLKernel& kern, elist& expList, 
       case State::in:
          if (state[si].ev.is_done())
          {
+            // An index to a portion of the explist ...
+            // fetch list in the cl code actually populates the portion
+            // of the 'two' lists
             kern.set_arg(3,&(state[si].ld));
+            // The 'answer' the correlation score?
+            //TODO: what's the formal term?
             kern.set_arg(5,&(state[si].ans));
             state[si].ev = CLCommandQueue::add_swarm(kern);
             state[si].st = State::exec;
          }
          break;
       case State::exec:
+         // Is this polling? spin waiting for the event to be done?
+         // Or is there an event firer?
          if (state[si].ev.is_done())
          {
             state[si].ev = CLCommandQueue::read_buffer(state[si].ans);
             state[si].st = State::out;
          }
          break;
+         // Placeholder
       case State::out:
          if (state[si].ev.is_done())
          {
